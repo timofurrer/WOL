@@ -8,7 +8,8 @@
 #include <errno.h>
 
 /* Some needed constants */
-#define BUF_MAX         17*6
+#define SEGMENT_LEN     16
+#define BUF_MAX         (SEGMENT_LEN + 1)*6
 #define MAC_ADDR_MAX    6
 #define REMOTE_ADDR     "255.255.255.255"
 #define REMOTE_PORT     9
@@ -96,14 +97,17 @@ int sendWOL( const unsigned char *mac ) {
 }
 
 int macAddrToByteArray( char *mac, unsigned char *byteArray ) {
-  char *delimiter = ":";
+  char delimiter = ':';
   char *tok;
   int i;
 
-  tok = strtok( mac, delimiter );
+  tok = strtok( mac, &delimiter );
   for( i = 0; i < MAC_ADDR_MAX; i++ ) {
-    byteArray[i] = (unsigned char)strtol( tok, NULL, 16 );
-    tok = strtok( NULL, delimiter );
+    if(tok == NULL) {
+      return -1;
+    }
+    byteArray[i] = (unsigned char)strtol( tok, NULL, SEGMENT_LEN );
+    tok = strtok( NULL, &delimiter );
   }
 
   return 0;
