@@ -1,4 +1,4 @@
-// Copyright 2011 by Timo Furrer
+/* Copyright 2011 by Timo Furrer */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,13 +7,13 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
-// Some needed constants
+/* Some needed constants */
 #define BUF_MAX         17*6
 #define MAC_ADDR_MAX    6
 #define REMOTE_ADDR     "255.255.255.255"
 #define REMOTE_PORT     9
 
-// Test MAC Addr: 00:0B:CD:39:2D:E9
+/* Test MAC Addr: 00:0B:CD:39:2D:E9 */
 
 /**
 * @brief Sends the WOL magic packet to the given mac address
@@ -38,17 +38,18 @@ int main( int argc, char **argv ) {
   unsigned char macAddr[MAC_ADDR_MAX];
 
   if( argc < 2 ) {
-    printf( "Usage: %s mac\n", *argv );
+    printf( "Usage: %s mac [mac] ...\n", *argv );
     exit( EXIT_FAILURE );
   }
 
-  if( macAddrToByteArray( argv[1], macAddr ) < 0 ){
-    printf( "MAC Address is not valid %s ...!\n", argv[1] );
-    exit( EXIT_FAILURE );
-  }
+  for( int i = 1; i < argc; i++ ) {
+    if( macAddrToByteArray( argv[i], macAddr ) < 0 ){
+      printf( "MAC Address #%i is not valid %s ...!\n", i, argv[i] );
+      exit( EXIT_FAILURE );
+    }
 
-  sendWOL( macAddr );
-  
+    sendWOL( macAddr );
+  }
   return EXIT_SUCCESS;
 }
 
