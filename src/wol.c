@@ -83,7 +83,7 @@ int main( int argc, char **argv ) {
     }
 
     funcp = nextAddrFromFile;
-    args[0] = argv[2];
+    args = &argv[2];
     length = 1;
   }
   else {
@@ -111,8 +111,7 @@ char *nextAddrFromArg( char **argument, int length ) {
   static int i = 0;
 
   while( i < length ) {
-    i++;
-    return argument[i];
+    return argument[++i];
   }
 
   return NULL;
