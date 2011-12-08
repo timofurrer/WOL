@@ -55,16 +55,14 @@ int macAddrToByteArray( char *mac, unsigned char *byteArray );
 * @brief Reads a file with mac addresses on each line.
 *
 * @param filename The filename to the mac address file.
-* @param readAddr The read mac addresses from the file.
 *
 * @return char ** 
 */
-char **readMacFile( char *filename, int *readAddr );
+char **readMacFile( char *filename );
 
 int main( int argc, char **argv ) {
   char **macAddresses = NULL;
-  int readAddr        = 0;
-  int i;
+  /*int i;*/
 
   if( argc < 2 ) {
     printf( "Usage: %s [-f filename|mac1 ...] \n", *argv );
@@ -77,7 +75,7 @@ int main( int argc, char **argv ) {
       exit( EXIT_FAILURE );
     }
 
-    macAddresses = readMacFile( argv[2], &readAddr );
+    macAddresses = readMacFile( argv[2] );
     if( macAddresses == NULL ) {
       printf( "An error occured during reading the mac address file: %s ...!\n", strerror( errno ) );
       exit( EXIT_FAILURE );
@@ -85,10 +83,10 @@ int main( int argc, char **argv ) {
 
     /*executeWOL( macAddresses, readAddr );*/
 
-    for( i = 0; i < readAddr; i++ ) {
-      free( macAddresses[i] );
-    }
-    free( macAddresses );
+    /*for( i = 0; i < readAddr; i++ ) {*/
+      /*free( macAddresses[i] );*/
+    /*}*/
+    /*free( macAddresses );*/
   }
   else {
     executeWOL( argv, argc );
@@ -177,14 +175,12 @@ int macAddrToByteArray( char *mac, unsigned char *byteArray ) {
   return 0;
 }
 
-char **readMacFile( char *filename, int *readAddr ) {
+char **readMacFile( char *filename ) {
   char **macAddresses = NULL;
   char currentMacAddr[MAC_ADDR_BUF];
-  int lines = 0;
+  int lines = 1;
   FILE *fp;
-  int i;
 
-  *readAddr = 0;
   fp = fopen( filename, "r" );
 
   if( fp == NULL ) {
@@ -192,11 +188,7 @@ char **readMacFile( char *filename, int *readAddr ) {
     exit( EXIT_FAILURE );
   }
   
-  while( fgets( currentMacAddr, MAC_ADDR_BUF, fp ) != NULL ) lines++; 
-  *readAddr = lines + 1;
-  rewind( fp );
-
-  macAddresses = (char **)malloc( *readAddr * sizeof( char ) );
+  macAddresses = (char **)malloc( lines * sizeof( char ) );
 
   if( macAddresses == NULL ) {
     printf( "Cannot allocate memory for addresses in file: %s ...!\n", strerror( errno ) );
@@ -212,25 +204,23 @@ char **readMacFile( char *filename, int *readAddr ) {
 
   macAddresses[0] = "fromfile";
 
-  printf( "Lines: %d\n", lines );
-
-  i = 1;
   while( fgets( currentMacAddr, MAC_ADDR_BUF, fp ) != NULL ) {
+    lines++;
     currentMacAddr[strlen( currentMacAddr ) - 1] = '\0';
     printf( "Read MAC address: %s ...\n", currentMacAddr );
-    
-    macAddresses[i] = (char *)malloc( MAC_ADDR_STR_MAX * sizeof( char ) );
 
-    if( macAddresses[i] == NULL ) {
-      printf( "Cannot allocate memory for address: %s ...!\n", strerror( errno ) );
-      exit( EXIT_FAILURE );
-    }
+    macAddresses = realloc( macAddresses, lines * MAC_ADDR_STR_MAX * sizeof( char ) );
+    macAddresses[lines - 1] = currentMacAddr;
 
-    strncpy( macAddresses[i], currentMacAddr, MAC_ADDR_STR_MAX );
-    macAddresses[strlen( currentMacAddr )] = '\0';
-
-    i++;
+    /*strncpy( macAddresses[lines - 1], currentMacAddr, MAC_ADDR_STR_MAX );*/
+    /*macAddresses[strlen( currentMacAddr )] = '\0';*/
   }
+
+  printf( "---%s---\n", macAddresses[0] );
+  printf( "---%s---\n", macAddresses[1] );
+  printf( "---%s---\n", macAddresses[2] );
+  printf( "---%s---\n", macAddresses[3] );
+  printf( "---%s---\n", macAddresses[4] );
 
   fclose( fp );
   return macAddresses;
