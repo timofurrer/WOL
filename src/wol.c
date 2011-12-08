@@ -10,26 +10,18 @@
 /* Some needed constants */
 #define BUF_MAX            17*6
 #define MAC_ADDR_MAX       6
-#define MAC_ADDR_BUF       32
 #define MAC_ADDR_INPUT_MAX 64
-#define MAC_ADDR_STR_MAX   18
 
 #define CONVERT_BASE       16
 
 #define REMOTE_ADDR        "255.255.255.255"
 #define REMOTE_PORT        9
 
-/* Test MAC Addr: 00:0B:CD:39:2D:E9 */
+#define ARGS_BUF_MAX       128
 
-/**
-* @brief Executes a WOL command for each mac address in the given array. 
-*
-* @param macAddresses The mac address array
-* @param length       The length of the mac address array
-*
-* @return integer
-*/
-int executeWOL( char **macAddresses, int length ); 
+#define USAGE              "Usage: %s [-f filename|mac1 ...]\n" 
+
+/* Test MAC Addr: 00:0B:CD:39:2D:E9 */
 
 /**
 * @brief Sends the WOL magic packet to the given mac address
@@ -42,6 +34,26 @@ int executeWOL( char **macAddresses, int length );
 int sendWOL( const unsigned char *mac, const char *macString );
 
 /**
+* @brief Gets the next mac address from the terminal arguments
+*
+* @param argument The arguments
+* @param length   The length of the arguments.
+*
+* @return 
+*/
+char *nextAddrFromArg( char **argument, int length );
+
+/**
+* @brief Gets the next mac address from a file.
+*
+* @param filenames The files with the mac addresses on each line.
+* @param length    The length of the file array
+*
+* @return char * 
+*/
+char *nextAddrFromFile( char **filenames, int length );
+
+/**
 * @brief Converts a ma address string to a byte array.
 *
 * @param mac       The mac address to convert
@@ -49,67 +61,97 @@ int sendWOL( const unsigned char *mac, const char *macString );
 *
 * @return integer
 */
-int macAddrToByteArray( char *mac, unsigned char *byteArray );
-
-/**
-* @brief Reads a file with mac addresses on each line.
-*
-* @param filename The filename to the mac address file.
-*
-* @return char ** 
-*/
-char **readMacFile( char *filename );
+int packMacAddr( char *mac, unsigned char *byteArray );
 
 int main( int argc, char **argv ) {
-  char **macAddresses = NULL;
-  /*int i;*/
+  char *( *funcp )( char **args, int length );
+  unsigned char currentMacAddr[MAC_ADDR_MAX];
+  char currentMacAddrStrTmp[MAC_ADDR_INPUT_MAX];
+  char *currentMacAddrStr = NULL;
+  char **args             = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
+  int length              = 0;
 
   if( argc < 2 ) {
-    printf( "Usage: %s [-f filename|mac1 ...] \n", *argv );
+    printf( USAGE, *argv );
     exit( EXIT_FAILURE );
   }
 
   if( !strncmp( argv[1], "-f", 2 ) ) {
     if( argc < 3 ) {
-      printf( "Usage: %s [-f filename|mac1 ...] \n", *argv );
+      printf( USAGE, *argv );
       exit( EXIT_FAILURE );
     }
 
-    macAddresses = readMacFile( argv[2] );
-    if( macAddresses == NULL ) {
-      printf( "An error occured during reading the mac address file: %s ...!\n", strerror( errno ) );
-      exit( EXIT_FAILURE );
-    }
-
-    /*executeWOL( macAddresses, readAddr );*/
-
-    /*for( i = 0; i < readAddr; i++ ) {*/
-      /*free( macAddresses[i] );*/
-    /*}*/
-    /*free( macAddresses );*/
+    funcp = nextAddrFromFile;
+    args[0] = argv[2];
+    length = 1;
   }
   else {
-    executeWOL( argv, argc );
+    funcp = nextAddrFromArg;
+    args = argv;
+    length = argc;
+  }
+
+  while( (currentMacAddrStr = funcp( args, length ) ) != NULL ) {
+    strncpy( currentMacAddrStrTmp, currentMacAddrStr, strlen( currentMacAddrStr ) );
+    currentMacAddrStrTmp[strlen( currentMacAddrStr )] = '\0';
+
+    if( packMacAddr( currentMacAddrStrTmp, currentMacAddr ) < 0 ) {
+      printf( "MAC Address ist not valid: %s ...!\n", currentMacAddrStr );
+    }
+    else {
+      sendWOL( currentMacAddr, currentMacAddrStr );
+    }
   }
 
   return EXIT_SUCCESS;
 }
 
-int executeWOL( char **macAddresses, int length ) {
-  unsigned char macAddr[MAC_ADDR_MAX];
-  char currentInputMac[MAC_ADDR_INPUT_MAX];
+char *nextAddrFromArg( char **argument, int length ) {
+  static int i = 0;
+
+  while( i < length ) {
+    i++;
+    return argument[i];
+  }
+
+  return NULL;
+}
+
+char *nextAddrFromFile( char **filenames, int length ) {
+  static FILE *fp = NULL;
+  char *currentMacAddr = (char *)malloc( MAC_ADDR_INPUT_MAX * sizeof( char ) );
+  
+  if( fp == NULL ) {
+    if( ( fp = fopen( filenames[0], "r" ) ) == NULL ) {
+      printf( "Cannot open file %s: %s ...!\n", filenames[0], strerror( errno ) );
+      exit( EXIT_FAILURE );
+    }
+  }
+
+  if( fgets( currentMacAddr, MAC_ADDR_INPUT_MAX, fp ) != NULL ) {
+    currentMacAddr[strlen( currentMacAddr )-1] = '\0';
+    return currentMacAddr;
+  }
+  else {
+    fclose( fp );
+    return NULL;
+  }
+}
+
+int packMacAddr( char *mac, unsigned char *byteArray ) {
+  char *delimiter = ":";
+  char *tok;
   int i;
 
-  for( i = 1; i < length; i++ ) {
-    strncpy( currentInputMac, macAddresses[i], strlen( macAddresses[i] ) );
-    currentInputMac[strlen( macAddresses[i] )] = '\0';
+  tok = strtok( mac, delimiter );
+  for( i = 0; i < MAC_ADDR_MAX; i++ ) {
+    if( tok == NULL ) {
+      return -1;
+    }
 
-    if( macAddrToByteArray( currentInputMac, macAddr ) < 0 ){
-      printf( "MAC Address is not valid %s ...!\n", macAddresses[i] );
-    }
-    else {
-      sendWOL( macAddr, macAddresses[i] );
-    }
+    byteArray[i] = (unsigned char)strtol( tok, NULL, CONVERT_BASE );
+    tok = strtok( NULL, delimiter );
   }
 
   return 0;
@@ -155,73 +197,4 @@ int sendWOL( const unsigned char *mac, const char *macString ) {
   printf( "Successful sent WOL magic packet to %s ...!\n", macString );
   
   return 0;
-}
-
-int macAddrToByteArray( char *mac, unsigned char *byteArray ) {
-  char *delimiter = ":";
-  char *tok;
-  int i;
-
-  tok = strtok( mac, delimiter );
-  for( i = 0; i < MAC_ADDR_MAX; i++ ) {
-    if( tok == NULL ) {
-      return -1;
-    }
-
-    byteArray[i] = (unsigned char)strtol( tok, NULL, CONVERT_BASE );
-    tok = strtok( NULL, delimiter );
-  }
-
-  return 0;
-}
-
-char **readMacFile( char *filename ) {
-  char **macAddresses = NULL;
-  char currentMacAddr[MAC_ADDR_BUF];
-  int lines = 1;
-  FILE *fp;
-
-  fp = fopen( filename, "r" );
-
-  if( fp == NULL ) {
-    printf( "Cannot open file %s: %s ...!\n", filename, strerror( errno ) );
-    exit( EXIT_FAILURE );
-  }
-  
-  macAddresses = (char **)malloc( lines * sizeof( char ) );
-
-  if( macAddresses == NULL ) {
-    printf( "Cannot allocate memory for addresses in file: %s ...!\n", strerror( errno ) );
-    exit( EXIT_FAILURE );
-  }
-
-  macAddresses[0] = (char *)malloc( MAC_ADDR_STR_MAX * sizeof( char ) );
-
-  if( macAddresses[0] == NULL ) {
-    printf( "Cannot allocate memory for address: %s ...!\n", strerror( errno ) );
-    exit( EXIT_FAILURE );
-  }
-
-  macAddresses[0] = "fromfile";
-
-  while( fgets( currentMacAddr, MAC_ADDR_BUF, fp ) != NULL ) {
-    lines++;
-    currentMacAddr[strlen( currentMacAddr ) - 1] = '\0';
-    printf( "Read MAC address: %s ...\n", currentMacAddr );
-
-    macAddresses = realloc( macAddresses, lines * MAC_ADDR_STR_MAX * sizeof( char ) );
-    macAddresses[lines - 1] = currentMacAddr;
-
-    /*strncpy( macAddresses[lines - 1], currentMacAddr, MAC_ADDR_STR_MAX );*/
-    /*macAddresses[strlen( currentMacAddr )] = '\0';*/
-  }
-
-  printf( "---%s---\n", macAddresses[0] );
-  printf( "---%s---\n", macAddresses[1] );
-  printf( "---%s---\n", macAddresses[2] );
-  printf( "---%s---\n", macAddresses[3] );
-  printf( "---%s---\n", macAddresses[4] );
-
-  fclose( fp );
-  return macAddresses;
 }
