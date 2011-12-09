@@ -33,6 +33,14 @@
 /* Test MAC Addr: 00:0B:CD:39:2D:E9 */
 
 /**
+* @brief Structure for mac address
+*/
+struct mac_addr {
+  unsigned char mac_addr[MAC_ADDR_MAX];
+};
+
+
+/**
 * @brief Sends the WOL magic packet to the given mac address
 *
 * @param mac       The mac address to which the magic packet has to be sent.
@@ -40,7 +48,7 @@
 *
 * @return integer
 */
-int sendWOL( const unsigned char *mac, const char *macString );
+int sendWOL( const struct mac_addr *mac, const char *macString );
 
 /**
 * @brief Gets the next mac address from the terminal arguments
@@ -48,7 +56,7 @@ int sendWOL( const unsigned char *mac, const char *macString );
 * @param argument The arguments
 * @param length   The length of the arguments.
 *
-* @return 
+* @return char * 
 */
 char *nextAddrFromArg( char **argument, int length );
 
@@ -70,11 +78,11 @@ char *nextAddrFromFile( char **filenames, int length );
 *
 * @return integer
 */
-int packMacAddr( char *mac, unsigned char *packedMac );
+int packMacAddr( char *mac, struct mac_addr *packedMac );
 
 int main( int argc, char **argv ) {
   char *( *funcp )( char **args, int length );
-  unsigned char currentMacAddr[MAC_ADDR_MAX];
+  struct mac_addr *currentMacAddr = (struct mac_addr *)malloc( sizeof( struct mac_addr ) );
   char currentMacAddrStrTmp[MAC_ADDR_INPUT_MAX];
   char *currentMacAddrStr = NULL;
   char **args             = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
@@ -156,7 +164,7 @@ char *nextAddrFromFile( char **filenames, int length ) {
   return NULL;
 }
 
-int packMacAddr( char *mac, unsigned char *packedMac ) {
+int packMacAddr( char *mac, struct mac_addr *packedMac ) {
   char *delimiter = ":";
   char *tok;
   int i;
@@ -167,14 +175,14 @@ int packMacAddr( char *mac, unsigned char *packedMac ) {
       return -1;
     }
 
-    packedMac[i] = (unsigned char)strtol( tok, NULL, CONVERT_BASE );
+    packedMac->mac_addr[i] = (unsigned char)strtol( tok, NULL, CONVERT_BASE );
     tok = strtok( NULL, delimiter );
   }
 
   return 0;
 }
 
-int sendWOL( const unsigned char *mac, const char *macString ) {
+int sendWOL( const struct mac_addr *mac, const char *macString ) {
   int udpSocket;
   struct sockaddr_in addr;
   unsigned char packet[BUF_MAX];
@@ -202,7 +210,7 @@ int sendWOL( const unsigned char *mac, const char *macString ) {
 
   for( i = 1; i <= 16; i++ ) {
     for( j = 0; j < 6; j++ ) {
-      packet[i*6+j] = mac[j];
+      packet[i*6+j] = mac->mac_addr[j];
     }
   }
 
