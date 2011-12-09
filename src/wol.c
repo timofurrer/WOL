@@ -19,7 +19,7 @@
 
 #define ARGS_BUF_MAX       128
 
-#define USAGE              "Usage: %s [-f filename|mac1 ...]\n" 
+#define USAGE              "Usage: %s [-f filename1, ...|mac1, ...]\n" 
 
 /* Test MAC Addr: 00:0B:CD:39:2D:E9 */
 
@@ -84,7 +84,7 @@ int main( int argc, char **argv ) {
 
     funcp = nextAddrFromFile;
     args = &argv[2];
-    length = 1;
+    length = argc - 2;
   }
   else {
     funcp = nextAddrFromArg;
@@ -119,23 +119,31 @@ char *nextAddrFromArg( char **argument, int length ) {
 
 char *nextAddrFromFile( char **filenames, int length ) {
   static FILE *fp = NULL;
+  static int fileNr = 0;
   char *currentMacAddr = (char *)malloc( MAC_ADDR_INPUT_MAX * sizeof( char ) );
   
-  if( fp == NULL ) {
-    if( ( fp = fopen( filenames[0], "r" ) ) == NULL ) {
-      printf( "Cannot open file %s: %s ...!\n", filenames[0], strerror( errno ) );
-      exit( EXIT_FAILURE );
+  while( fileNr < length ) {
+    if( fp == NULL ) {
+      if( ( fp = fopen( filenames[fileNr], "r" ) ) == NULL ) {
+        printf( "Cannot open file %s: %s ...!\n", filenames[fileNr], strerror( errno ) );
+        exit( EXIT_FAILURE );
+      }
+      printf( "Read from file %s:\n", filenames[fileNr] );
+    }
+
+    if( fgets( currentMacAddr, MAC_ADDR_INPUT_MAX, fp ) != NULL ) {
+      currentMacAddr[strlen( currentMacAddr ) - 1] = '\0';
+      return currentMacAddr;
+    }
+    else {
+      fclose( fp );
+      fp = NULL;
+      fileNr++;
+      puts( "" );
     }
   }
-
-  if( fgets( currentMacAddr, MAC_ADDR_INPUT_MAX, fp ) != NULL ) {
-    currentMacAddr[strlen( currentMacAddr )-1] = '\0';
-    return currentMacAddr;
-  }
-  else {
-    fclose( fp );
-    return NULL;
-  }
+  
+  return NULL;
 }
 
 int packMacAddr( char *mac, unsigned char *byteArray ) {
