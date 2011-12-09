@@ -1,4 +1,13 @@
-/* Copyright 2011 by Timo Furrer */
+/*
+*
+* @author    Timo Furrer
+* @co-author Mogria
+* 
+* @version   0.01.05
+* @copyright GNU General Public License 
+*
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -46,22 +55,22 @@ char *nextAddrFromArg( char **argument, int length );
 /**
 * @brief Gets the next mac address from a file.
 *
-* @param filenames The files with the mac addresses on each line.
-* @param length    The length of the file array
+* @param filenames The filenames with the mac addresses on each line.
+* @param length    The length of the filename array
 *
 * @return char * 
 */
 char *nextAddrFromFile( char **filenames, int length );
 
 /**
-* @brief Converts a ma address string to a byte array.
+* @brief Converts a mac address string to a packet mac address.
 *
 * @param mac       The mac address to convert
-* @param byteArray The byte array to write in
+* @param packedMac The byte array to write in
 *
 * @return integer
 */
-int packMacAddr( char *mac, unsigned char *byteArray );
+int packMacAddr( char *mac, unsigned char *packedMac );
 
 int main( int argc, char **argv ) {
   char *( *funcp )( char **args, int length );
@@ -69,7 +78,7 @@ int main( int argc, char **argv ) {
   char currentMacAddrStrTmp[MAC_ADDR_INPUT_MAX];
   char *currentMacAddrStr = NULL;
   char **args             = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
-  int length              = 0;
+  int length              = argc;
 
   if( argc < 2 ) {
     printf( USAGE, *argv );
@@ -82,14 +91,13 @@ int main( int argc, char **argv ) {
       exit( EXIT_FAILURE );
     }
 
-    funcp = nextAddrFromFile;
-    args = &argv[2];
-    length = argc - 2;
+    funcp   = nextAddrFromFile;
+    args    = &argv[2];
+    length -= 2;
   }
   else {
     funcp = nextAddrFromArg;
-    args = argv;
-    length = argc;
+    args  = argv;
   }
 
   while( (currentMacAddrStr = funcp( args, length ) ) != NULL ) {
@@ -100,7 +108,9 @@ int main( int argc, char **argv ) {
       printf( "MAC Address ist not valid: %s ...!\n", currentMacAddrStr );
     }
     else {
-      sendWOL( currentMacAddr, currentMacAddrStr );
+      if( sendWOL( currentMacAddr, currentMacAddrStr ) < 0 ) {
+        printf( "Error occured during sending the WOL magic packet for mac address: %s ...!\n", currentMacAddrStr );
+      }
     }
   }
 
@@ -146,7 +156,7 @@ char *nextAddrFromFile( char **filenames, int length ) {
   return NULL;
 }
 
-int packMacAddr( char *mac, unsigned char *byteArray ) {
+int packMacAddr( char *mac, unsigned char *packedMac ) {
   char *delimiter = ":";
   char *tok;
   int i;
@@ -157,7 +167,7 @@ int packMacAddr( char *mac, unsigned char *byteArray ) {
       return -1;
     }
 
-    byteArray[i] = (unsigned char)strtol( tok, NULL, CONVERT_BASE );
+    packedMac[i] = (unsigned char)strtol( tok, NULL, CONVERT_BASE );
     tok = strtok( NULL, delimiter );
   }
 
