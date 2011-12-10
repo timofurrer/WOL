@@ -2,3 +2,4 @@
 *.swo
 *.backup
 src/wol
+patches/

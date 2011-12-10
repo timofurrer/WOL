@@ -8,6 +8,7 @@
 *
 */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -81,32 +82,33 @@ char *nextAddrFromFile( char **filenames, int length );
 int packMacAddr( char *mac, struct mac_addr *packedMac );
 
 int main( int argc, char **argv ) {
-  char *( *funcp )( char **args, int length );
+  char *( *funcp )( char **args, int length ) = nextAddrFromArg;
   struct mac_addr *currentMacAddr = (struct mac_addr *)malloc( sizeof( struct mac_addr ) );
   char currentMacAddrStrTmp[MAC_ADDR_INPUT_MAX];
   char *currentMacAddrStr = NULL;
   char **args             = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
   int length              = argc;
+  char argument;
+
+  while(( argument = getopt( argc, argv, "f" )) != -1 ) {
+    if( argument == 'f' ) {
+      funcp = nextAddrFromFile;
+    } else if( argument == '?' ) {
+      if( isprint( optopt ) ) {
+        fprintf( stderr, "Unknown option: %c ...!\n", optopt);
+      }
+    } else {
+      printf( USAGE, *argv );
+    }
+  }
 
   if( argc < 2 ) {
     printf( USAGE, *argv );
     exit( EXIT_FAILURE );
   }
 
-  if( !strncmp( argv[1], "-f", 2 ) ) {
-    if( argc < 3 ) {
-      printf( USAGE, *argv );
-      exit( EXIT_FAILURE );
-    }
-
-    funcp   = nextAddrFromFile;
-    args    = &argv[2];
-    length -= 2;
-  }
-  else {
-    funcp = nextAddrFromArg;
-    args  = argv;
-  }
+  args = &argv[optind];
+  length = argc - optind;
 
   while( (currentMacAddrStr = funcp( args, length ) ) != NULL ) {
     strncpy( currentMacAddrStrTmp, currentMacAddrStr, strlen( currentMacAddrStr ) );
@@ -129,7 +131,7 @@ char *nextAddrFromArg( char **argument, int length ) {
   static int i = 0;
 
   while( i < length ) {
-    return argument[++i];
+    return argument[i++];
   }
 
   return NULL;
