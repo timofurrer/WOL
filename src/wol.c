@@ -1,10 +1,12 @@
 /*
 *
-* @author    Timo Furrer
-* @co-author Mogria
+* @author     Timo Furrer
+* @co-author  Mogria
 * 
-* @version   0.01.05
-* @copyright GNU General Public License 
+* @version    0.01.05
+* @copyright  GNU General Public License 
+*
+* @reopsitory https://github.com/Ti-Systems/WOL
 *
 */
 
@@ -19,6 +21,7 @@
 
 /* Some needed constants */
 #define PACKET_BUF         17*6
+
 #define MAC_ADDR_MAX       6
 #define MAC_ADDR_STR_MAX   64
 
@@ -120,6 +123,11 @@ mac_addr_t *nextAddrFromArg( char **argument, int length ) {
   static int i = 0;
   mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) );
 
+  if( currentMacAddr == NULL ) {
+    fprintf( stderr, "Cannot allocate memory: %s ...!\n", strerror( errno ) );
+    exit( EXIT_FAILURE );
+  }
+
   while( i < length ) {
     if( packMacAddr( argument[i], currentMacAddr ) < 0 ) {
       fprintf( stderr, "MAC Address ist not valid: %s ...!\n", argument[i] );
@@ -138,6 +146,11 @@ mac_addr_t *nextAddrFromFile( char **filenames, int length ) {
   static int fileNr          = 0;
   mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) ); 
   char *currentInputMacAddr  = (char *)malloc( MAC_ADDR_STR_MAX * sizeof( char ) );
+
+  if( currentMacAddr == NULL || currentInputMacAddr == NULL ) {
+    fprintf( stderr, "Cannot allocate memory: %s ...!\n", strerror( errno ) );
+    exit( EXIT_FAILURE );
+  }
   
   while( fileNr < length ) {
     if( fp == NULL ) {
