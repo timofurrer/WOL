@@ -8,19 +8,19 @@
 *
 */
 
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <errno.h>
 
 /* Some needed constants */
-#define BUF_MAX            17*6
+#define PACKET_BUF         17*6
 #define MAC_ADDR_MAX       6
-#define MAC_ADDR_INPUT_MAX 64
+#define MAC_ADDR_STR_MAX   64
 
 #define CONVERT_BASE       16
 
@@ -36,20 +36,19 @@
 /**
 * @brief Structure for mac address
 */
-struct mac_addr {
+typedef struct {
   unsigned char mac_addr[MAC_ADDR_MAX];
-};
-
+  char mac_addr_str[MAC_ADDR_STR_MAX];
+} mac_addr_t;
 
 /**
 * @brief Sends the WOL magic packet to the given mac address
 *
 * @param mac       The mac address to which the magic packet has to be sent.
-* @param macString The mac address as string for output.
 *
 * @return integer
 */
-int sendWOL( const struct mac_addr *mac, const char *macString );
+int sendWOL( const mac_addr_t *mac );
 
 /**
 * @brief Gets the next mac address from the terminal arguments
@@ -57,9 +56,9 @@ int sendWOL( const struct mac_addr *mac, const char *macString );
 * @param argument The arguments
 * @param length   The length of the arguments.
 *
-* @return char * 
+* @return mac_addr_t * 
 */
-char *nextAddrFromArg( char **argument, int length );
+mac_addr_t *nextAddrFromArg( char **argument, int length );
 
 /**
 * @brief Gets the next mac address from a file.
@@ -67,92 +66,94 @@ char *nextAddrFromArg( char **argument, int length );
 * @param filenames The filenames with the mac addresses on each line.
 * @param length    The length of the filename array
 *
-* @return char * 
+* @return mac_addr_t * 
 */
-char *nextAddrFromFile( char **filenames, int length );
+mac_addr_t *nextAddrFromFile( char **filenames, int length );
 
 /**
-* @brief Converts a mac address string to a packet mac address.
+* @brief Converts a mac address string to a mac address struct of type mac_addr_t
 *
 * @param mac       The mac address to convert
-* @param packedMac The byte array to write in
+* @param packedMac The mac address struct of type mac_addr_t
 *
 * @return integer
 */
-int packMacAddr( char *mac, struct mac_addr *packedMac );
+int packMacAddr( const char *mac, mac_addr_t *packedMac );
 
 int main( int argc, char **argv ) {
-  char *( *funcp )( char **args, int length ) = nextAddrFromArg;
-  struct mac_addr *currentMacAddr = (struct mac_addr *)malloc( sizeof( struct mac_addr ) );
-  char currentMacAddrStrTmp[MAC_ADDR_INPUT_MAX];
-  char *currentMacAddrStr = NULL;
-  char **args             = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
-  int length              = argc;
+  mac_addr_t *( *funcp )( char **args, int length ) = nextAddrFromArg;
+  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) );
+  char **args                = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
+  int length                 = argc;
   char argument;
 
-  while(( argument = getopt( argc, argv, "f" )) != -1 ) {
+  while( ( argument = getopt( argc, argv, "f" ) ) != -1 ) {
     if( argument == 'f' ) {
       funcp = nextAddrFromFile;
     } else if( argument == '?' ) {
       if( isprint( optopt ) ) {
-        fprintf( stderr, "Unknown option: %c ...!\n", optopt);
+        fprintf( stderr, "Unknown option: %c ...!\n", optopt );
       }
     } else {
-      printf( USAGE, *argv );
+      fprintf( stderr, USAGE, *argv );
     }
   }
 
   if( argc < 2 ) {
-    printf( USAGE, *argv );
+    fprintf( stderr, USAGE, *argv );
     exit( EXIT_FAILURE );
   }
 
-  args = &argv[optind];
+  args   = &argv[optind];
   length = argc - optind;
 
-  while( (currentMacAddrStr = funcp( args, length ) ) != NULL ) {
-    strncpy( currentMacAddrStrTmp, currentMacAddrStr, strlen( currentMacAddrStr ) );
-    currentMacAddrStrTmp[strlen( currentMacAddrStr )] = '\0';
-
-    if( packMacAddr( currentMacAddrStrTmp, currentMacAddr ) < 0 ) {
-      printf( "MAC Address ist not valid: %s ...!\n", currentMacAddrStr );
-    }
-    else {
-      if( sendWOL( currentMacAddr, currentMacAddrStr ) < 0 ) {
-        printf( "Error occured during sending the WOL magic packet for mac address: %s ...!\n", currentMacAddrStr );
-      }
+  while( ( currentMacAddr = funcp( args, length ) ) != NULL ) {
+    if( sendWOL( currentMacAddr ) < 0 ) {
+      fprintf( stderr, "Error occured during sending the WOL magic packet for mac address: %s ...!\n", currentMacAddr->mac_addr_str );
     }
   }
 
   return EXIT_SUCCESS;
 }
 
-char *nextAddrFromArg( char **argument, int length ) {
+mac_addr_t *nextAddrFromArg( char **argument, int length ) {
   static int i = 0;
+  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) );
 
   while( i < length ) {
-    return argument[i++];
+    if( packMacAddr( argument[i], currentMacAddr ) < 0 ) {
+      fprintf( stderr, "MAC Address ist not valid: %s ...!\n", argument[i] );
+      i++;
+      continue;
+    }
+    i++;
+    return currentMacAddr;
   }
 
   return NULL;
 }
 
-char *nextAddrFromFile( char **filenames, int length ) {
-  static FILE *fp = NULL;
-  static int fileNr = 0;
-  char *currentMacAddr = (char *)malloc( MAC_ADDR_INPUT_MAX * sizeof( char ) );
+mac_addr_t *nextAddrFromFile( char **filenames, int length ) {
+  static FILE *fp            = NULL;
+  static int fileNr          = 0;
+  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) ); 
+  char *currentInputMacAddr  = (char *)malloc( MAC_ADDR_STR_MAX * sizeof( char ) );
   
   while( fileNr < length ) {
     if( fp == NULL ) {
       if( ( fp = fopen( filenames[fileNr], "r" ) ) == NULL ) {
-        printf( "Cannot open file %s: %s ...!\n", filenames[fileNr], strerror( errno ) );
+        fprintf( stderr, "Cannot open file %s: %s ...!\n", filenames[fileNr], strerror( errno ) );
         exit( EXIT_FAILURE );
       }
       printf( "Read from file %s:\n", filenames[fileNr] );
     }
 
-    if( fgets( currentMacAddr, MAC_ADDR_INPUT_MAX, fp ) != NULL ) {
-      currentMacAddr[strlen( currentMacAddr ) - 1] = '\0';
+    if( fgets( currentInputMacAddr, MAC_ADDR_STR_MAX, fp ) != NULL ) {
+      currentInputMacAddr[strlen( currentInputMacAddr ) - 1] = '\0';
+      if( packMacAddr( currentInputMacAddr, currentMacAddr ) < 0 ) {
+        fprintf( stderr, "MAC Address ist not valid: %s ...!\n", currentInputMacAddr );
+        continue;
+      }
       return currentMacAddr;
     }
     else {
@@ -166,12 +167,19 @@ char *nextAddrFromFile( char **filenames, int length ) {
   return NULL;
 }
 
-int packMacAddr( char *mac, struct mac_addr *packedMac ) {
+int packMacAddr( const char *mac, mac_addr_t *packedMac ) {
+  char *tmpMac    = (char *)malloc( strlen( mac ) * sizeof( char ) );
   char *delimiter = ":";
   char *tok;
   int i;
 
-  tok = strtok( mac, delimiter );
+  if( tmpMac == NULL ) {
+    fprintf( stderr, "Cannot allocate memory for mac address: %s ...!\n", strerror( errno ) );
+    return -1;
+  }
+  
+  strncpy( tmpMac, mac, strlen( mac ) );
+  tok = strtok( tmpMac, delimiter );
   for( i = 0; i < MAC_ADDR_MAX; i++ ) {
     if( tok == NULL ) {
       return -1;
@@ -181,24 +189,25 @@ int packMacAddr( char *mac, struct mac_addr *packedMac ) {
     tok = strtok( NULL, delimiter );
   }
 
+  strncpy( packedMac->mac_addr_str, mac, MAC_ADDR_STR_MAX );
   return 0;
 }
 
-int sendWOL( const struct mac_addr *mac, const char *macString ) {
+int sendWOL( const mac_addr_t *mac ) {
   int udpSocket;
   struct sockaddr_in addr;
-  unsigned char packet[BUF_MAX];
+  unsigned char packet[PACKET_BUF];
   int i, j, optval = 1;
 
   udpSocket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
   if( udpSocket < 0 ) {
-    printf( "Cannot open socket: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot open socket: %s ...!\n", strerror( errno ) );
     return -1;
   }
 
   if( setsockopt( udpSocket, SOL_SOCKET, SO_BROADCAST, (char *)&optval, sizeof( optval ) ) < 0 ) {
-    printf( "Cannot set socket options: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot set socket options: %s ...!\n", strerror( errno ) );
     return -1;
   }
 
@@ -217,11 +226,10 @@ int sendWOL( const struct mac_addr *mac, const char *macString ) {
   }
 
   if( sendto( udpSocket, packet, sizeof( packet ), 0, (struct sockaddr *) &addr, sizeof( addr ) ) < 0 ) {
-    printf( "Cannot send data: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot send data: %s ...!\n", strerror( errno ) );
     return -1;
   }
 
-  printf( "Successful sent WOL magic packet to %s ...!\n", macString );
-  
+  printf( "Successful sent WOL magic packet to %s ...!\n", mac->mac_addr_str );
   return 0;
 }
