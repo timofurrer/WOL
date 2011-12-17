@@ -8,3 +8,10 @@ Copyright (C) 2011 by Timo Furrer
 ===============================
 
 With this smart C program you can send a wol magic packet to a mac address.
+
+Using
+==============================
+Usage: ./wol.c [-r remoteaddr] [-f filename1, ...|mac1, ...]
+
+You can either pass some mac addresses or you can pass with the option f some filenames contains a mac address on each line to wake up.
+With the option r you can specify the remote ip address. The default value is 255.255.255.255

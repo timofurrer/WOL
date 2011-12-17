@@ -46,14 +46,21 @@ typedef struct {
 } mac_addr_t;
 
 /**
+* @brief Structure for wol packet ( header )
+*/
+typedef struct {
+  char remote_addr[ADDR_LEN];
+  mac_addr_t *mac_addr;
+} wol_header_t;
+
+/**
 * @brief Sends the WOL magic packet to the given mac address
 *
-* @param mac        The mac address to which the magic packet has to be sent.
-* @param remoteAddr The remote ip address
+* @param wol_header WOL header packet
 *
 * @return integer
 */
-int sendWOL( const mac_addr_t *mac, const char *remoteAddr );
+int sendWOL( const wol_header_t *wol_header );
 
 /**
 * @brief Gets the next mac address from the terminal arguments
@@ -87,17 +94,18 @@ int packMacAddr( const char *mac, mac_addr_t *packedMac );
 
 int main( int argc, char **argv ) {
   mac_addr_t *( *funcp )( char **args, int length ) = nextAddrFromArg;
-  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) );
-  char **args                = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
-  char remoteAddr[ADDR_LEN]  = REMOTE_ADDR;
-  int length                 = argc;
+  wol_header_t *currentWOLHeader = (wol_header_t *)malloc( sizeof( wol_header_t ) ); 
+  char **args                    = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
+  int length                     = argc;
   char argument;  
+
+  strncpy( currentWOLHeader->remote_addr, REMOTE_ADDR, ADDR_LEN );
 
   while( ( argument = getopt( argc, argv, "r:f" ) ) != -1 ) {
     if( argument == 'f' ) {
       funcp = nextAddrFromFile;
     } else if( argument == 'r' ) {
-      strncpy( remoteAddr, optarg, ADDR_LEN );
+      strncpy( currentWOLHeader->remote_addr, optarg, ADDR_LEN );
     } else if( argument == '?' ) {
       if( isprint( optopt ) ) {
         fprintf( stderr, "Unknown option: %c ...!\n", optopt );
@@ -115,9 +123,9 @@ int main( int argc, char **argv ) {
   args   = &argv[optind];
   length = argc - optind;
 
-  while( ( currentMacAddr = funcp( args, length ) ) != NULL ) {
-    if( sendWOL( currentMacAddr, remoteAddr ) < 0 ) {
-      fprintf( stderr, "Error occured during sending the WOL magic packet for mac address: %s ...!\n", currentMacAddr->mac_addr_str );
+  while( ( currentWOLHeader->mac_addr = funcp( args, length ) ) != NULL ) {
+    if( sendWOL( currentWOLHeader ) < 0 ) {
+      fprintf( stderr, "Error occured during sending the WOL magic packet for mac address: %s ...!\n", currentWOLHeader->mac_addr->mac_addr_str );
     }
   }
 
@@ -211,7 +219,7 @@ int packMacAddr( const char *mac, mac_addr_t *packedMac ) {
   return 0;
 }
 
-int sendWOL( const mac_addr_t *mac, const char *remoteAddr ) {
+int sendWOL( const wol_header_t *wol_header ) {
   int udpSocket;
   struct sockaddr_in addr;
   unsigned char packet[PACKET_BUF];
@@ -229,8 +237,8 @@ int sendWOL( const mac_addr_t *mac, const char *remoteAddr ) {
 
   addr.sin_family = AF_INET;
   addr.sin_port   = htons( REMOTE_PORT );
-  if( inet_aton( remoteAddr, &addr.sin_addr ) == 0 ) {
-    fprintf( stderr, "Invalid remote ip address given: %s ...!\n", remoteAddr );
+  if( inet_aton( wol_header->remote_addr, &addr.sin_addr ) == 0 ) {
+    fprintf( stderr, "Invalid remote ip address given: %s ...!\n", wol_header->remote_addr );
     return -1;
   }
   
@@ -240,7 +248,7 @@ int sendWOL( const mac_addr_t *mac, const char *remoteAddr ) {
 
   for( i = 1; i <= 16; i++ ) {
     for( j = 0; j < 6; j++ ) {
-      packet[i*6+j] = mac->mac_addr[j];
+      packet[i*6+j] = wol_header->mac_addr->mac_addr[j];
     }
   }
 
@@ -249,6 +257,6 @@ int sendWOL( const mac_addr_t *mac, const char *remoteAddr ) {
     return -1;
   }
 
-  printf( "Successful sent WOL magic packet to %s ...!\n", mac->mac_addr_str );
+  printf( "Successful sent WOL magic packet to %s ...!\n", wol_header->mac_addr->mac_addr_str );
   return 0;
 }
