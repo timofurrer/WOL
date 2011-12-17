@@ -33,7 +33,7 @@
 
 #define ARGS_BUF_MAX       128
 
-#define USAGE              "Usage: %s [-f filename1, ...|mac1, ...]\n" 
+#define USAGE              "Usage: %s [-r remoteaddr] [-f filename1, ...|mac1, ...]\n" 
 
 /* Test MAC Addr: 00:0B:CD:39:2D:E9 */
 
@@ -89,9 +89,9 @@ int main( int argc, char **argv ) {
   mac_addr_t *( *funcp )( char **args, int length ) = nextAddrFromArg;
   mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) );
   char **args                = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
+  char remoteAddr[ADDR_LEN]  = REMOTE_ADDR;
   int length                 = argc;
   char argument;  
-  char remoteAddr[ADDR_LEN]  = REMOTE_ADDR;
 
   while( ( argument = getopt( argc, argv, "r:f" ) ) != -1 ) {
     if( argument == 'f' ) {
@@ -217,9 +217,7 @@ int sendWOL( const mac_addr_t *mac, const char *remoteAddr ) {
   unsigned char packet[PACKET_BUF];
   int i, j, optval = 1;
 
-  udpSocket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-
-  if( udpSocket < 0 ) {
+  if( ( udpSocket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP ) ) < 0 ) {
     fprintf( stderr, "Cannot open socket: %s ...!\n", strerror( errno ) );
     return -1;
   }
