@@ -27,6 +27,7 @@
 
 #define CONVERT_BASE       16
 
+#define ADDR_LEN           16
 #define REMOTE_ADDR        "255.255.255.255"
 #define REMOTE_PORT        9
 
@@ -47,11 +48,12 @@ typedef struct {
 /**
 * @brief Sends the WOL magic packet to the given mac address
 *
-* @param mac       The mac address to which the magic packet has to be sent.
+* @param mac        The mac address to which the magic packet has to be sent.
+* @param remoteAddr The remote ip address
 *
 * @return integer
 */
-int sendWOL( const mac_addr_t *mac );
+int sendWOL( const mac_addr_t *mac, const char *remoteAddr );
 
 /**
 * @brief Gets the next mac address from the terminal arguments
@@ -88,11 +90,14 @@ int main( int argc, char **argv ) {
   mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) );
   char **args                = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) ); 
   int length                 = argc;
-  char argument;
+  char argument;  
+  char remoteAddr[ADDR_LEN]  = REMOTE_ADDR;
 
-  while( ( argument = getopt( argc, argv, "f" ) ) != -1 ) {
+  while( ( argument = getopt( argc, argv, "r:f" ) ) != -1 ) {
     if( argument == 'f' ) {
       funcp = nextAddrFromFile;
+    } else if( argument == 'r' ) {
+      strncpy( remoteAddr, optarg, ADDR_LEN );
     } else if( argument == '?' ) {
       if( isprint( optopt ) ) {
         fprintf( stderr, "Unknown option: %c ...!\n", optopt );
@@ -111,7 +116,7 @@ int main( int argc, char **argv ) {
   length = argc - optind;
 
   while( ( currentMacAddr = funcp( args, length ) ) != NULL ) {
-    if( sendWOL( currentMacAddr ) < 0 ) {
+    if( sendWOL( currentMacAddr, remoteAddr ) < 0 ) {
       fprintf( stderr, "Error occured during sending the WOL magic packet for mac address: %s ...!\n", currentMacAddr->mac_addr_str );
     }
   }
@@ -206,7 +211,7 @@ int packMacAddr( const char *mac, mac_addr_t *packedMac ) {
   return 0;
 }
 
-int sendWOL( const mac_addr_t *mac ) {
+int sendWOL( const mac_addr_t *mac, const char *remoteAddr ) {
   int udpSocket;
   struct sockaddr_in addr;
   unsigned char packet[PACKET_BUF];
@@ -226,7 +231,10 @@ int sendWOL( const mac_addr_t *mac ) {
 
   addr.sin_family = AF_INET;
   addr.sin_port   = htons( REMOTE_PORT );
-  inet_aton( REMOTE_ADDR, &addr.sin_addr );
+  if( inet_aton( remoteAddr, &addr.sin_addr ) == 0 ) {
+    fprintf( stderr, "Invalid remote ip address given: %s ...!\n", remoteAddr );
+    return -1;
+  }
   
   for( i = 0; i < 6; i++ ) {
     packet[i] = 0xFF;
