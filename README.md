@@ -4,7 +4,7 @@ With this smart C program you can send wol magic packets in the network
 
 ***
 
-**Author**: Timo Furrer <timo.furrer@gmail.com>
+**Author**: Timo Furrer <timo.furrer@gmail.com><br />
 **License**: GPL
 
 # What ?
