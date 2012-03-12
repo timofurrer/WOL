@@ -1,5 +1,10 @@
+# Vim swap files
 *.swp
 *.swo
-*.backup
+
+# Binary files
 src/wol
+wol
+
+# Patches
 patches/
