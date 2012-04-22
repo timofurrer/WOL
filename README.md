@@ -1,22 +1,19 @@
 # WOL - **W**ake **O**n **L**an
-
-With this smart C program you can send wol magic packets in the network
+> With this smart C program you can send wol magic packets in the network<br />
+> *Version 0.01.06*
 
 ***
 
-**Author**: Timo Furrer <timo.furrer@gmail.com><br />
-**License**: GPL
+**Author**: Timo Furrer <tuxtimo@gmail.com><br />
+**License:** GPL (See `LICENSE`)
 
-# What ?
+## What ?
+With this smart C program you can send wol magic packets to one or more MAC addresses in the network.
 
-With this smart C program you can send  wol magic packets to one or more mac addresses in the network.
-
-
-# How to use
-
+## How to use
     Usage: ./wol.c [-r remoteaddr] [-f filename1, ...|mac1, ...]
 
-You can either pass some mac addresses or you can pass with the option f some filenames contains a mac address on each line to wake up.
+You can either pass some MAC addresses or you can pass with the option f some filenames contains a MAC address on each line to wake up.
 With the option r you can specify the remote ip address. The default value is 255.255.255.255 for a broadcast call.
 
 **Some examples:**
@@ -27,15 +24,14 @@ With the option r you can specify the remote ip address. The default value is 25
     $ ./wol -r 192.168.1.36 -f macaddresses
     $ ./wol -f macaddresses macaddresses2
 
-# How to compile
-
+## How to compile
 To compile the wol source you just need the `gcc`.
 Compile it with the following command:
 
     $ gcc -Wall -o wol src/wol.c
 
 If you want to be able to execute this script from command line without to be in the right directory you can copy the compiled binary file to you `/usr/bin/` directory.
-For this command you need root-privileges:
+For this command you need *root-privileges*:
 
     # cp wol /usr/bin
 
