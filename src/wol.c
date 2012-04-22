@@ -24,14 +24,14 @@
 int main( int argc, char **argv )
 {
   mac_addr_t *( *funcp )( char **args, int length ) = nextAddrFromArg;
-  wol_header_t *currentWOLHeader = (wol_header_t *)malloc( sizeof( wol_header_t ) );
-  char **args                    = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ) );
+  wol_header_t *currentWOLHeader = (wol_header_t *)malloc( sizeof( wol_header_t ));
+  char **args                    = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ));
   int length                     = argc;
   char argument;
 
   strncpy( currentWOLHeader->remote_addr, REMOTE_ADDR, ADDR_LEN );
 
-  while( ( argument = getopt( argc, argv, "r:f" ) ) != -1 )
+  while(( argument = getopt( argc, argv, "r:f" )) != -1 )
   {
     if( argument == 'f' )
     {
@@ -43,7 +43,7 @@ int main( int argc, char **argv )
     }
     else if( argument == '?' )
     {
-      if( isprint( optopt ) )
+      if( isprint( optopt ))
       {
         fprintf( stderr, "Unknown option: %c ...!\n", optopt );
       }
@@ -63,7 +63,7 @@ int main( int argc, char **argv )
   args   = &argv[optind];
   length = argc - optind;
 
-  while( ( currentWOLHeader->mac_addr = funcp( args, length ) ) != NULL )
+  while(( currentWOLHeader->mac_addr = funcp( args, length )) != NULL )
   {
     if( sendWOL( currentWOLHeader ) < 0 )
     {
@@ -77,11 +77,11 @@ int main( int argc, char **argv )
 mac_addr_t *nextAddrFromArg( char **argument, int length )
 {
   static int i = 0;
-  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) );
+  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ));
 
   if( currentMacAddr == NULL )
   {
-    fprintf( stderr, "Cannot allocate memory: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot allocate memory: %s ...!\n", strerror( errno ));
     exit( EXIT_FAILURE );
   }
 
@@ -104,12 +104,12 @@ mac_addr_t *nextAddrFromFile( char **filenames, int length )
 {
   static FILE *fp            = NULL;
   static int fileNr          = 0;
-  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ) );
-  char *currentInputMacAddr  = (char *)malloc( MAC_ADDR_STR_MAX * sizeof( char ) );
+  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ));
+  char *currentInputMacAddr  = (char *)malloc( MAC_ADDR_STR_MAX * sizeof( char ));
 
   if( currentMacAddr == NULL || currentInputMacAddr == NULL )
   {
-    fprintf( stderr, "Cannot allocate memory: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot allocate memory: %s ...!\n", strerror( errno ));
     exit( EXIT_FAILURE );
   }
 
@@ -117,9 +117,9 @@ mac_addr_t *nextAddrFromFile( char **filenames, int length )
   {
     if( fp == NULL )
     {
-      if( ( fp = fopen( filenames[fileNr], "r" ) ) == NULL )
+      if(( fp = fopen( filenames[fileNr], "r" )) == NULL )
       {
-        fprintf( stderr, "Cannot open file %s: %s ...!\n", filenames[fileNr], strerror( errno ) );
+        fprintf( stderr, "Cannot open file %s: %s ...!\n", filenames[fileNr], strerror( errno ));
         exit( EXIT_FAILURE );
       }
       printf( "Read from file %s:\n", filenames[fileNr] );
@@ -149,18 +149,18 @@ mac_addr_t *nextAddrFromFile( char **filenames, int length )
 
 int packMacAddr( const char *mac, mac_addr_t *packedMac )
 {
-  char *tmpMac    = (char *)malloc( strlen( mac ) * sizeof( char ) );
+  char *tmpMac    = (char *)malloc( strlen( mac ) * sizeof( char ));
   char *delimiter = ":";
   char *tok;
   int i;
 
   if( tmpMac == NULL )
   {
-    fprintf( stderr, "Cannot allocate memory for mac address: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot allocate memory for mac address: %s ...!\n", strerror( errno ));
     return -1;
   }
 
-  strncpy( tmpMac, mac, strlen( mac ) );
+  strncpy( tmpMac, mac, strlen( mac ));
   tok = strtok( tmpMac, delimiter );
   for( i = 0; i < MAC_ADDR_MAX; i++ )
   {
@@ -184,15 +184,15 @@ int sendWOL( const wol_header_t *wol_header )
   unsigned char packet[PACKET_BUF];
   int i, j, optval = 1;
 
-  if( ( udpSocket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP ) ) < 0 )
+  if(( udpSocket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP )) < 0 )
   {
-    fprintf( stderr, "Cannot open socket: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot open socket: %s ...!\n", strerror( errno ));
     return -1;
   }
 
-  if( setsockopt( udpSocket, SOL_SOCKET, SO_BROADCAST, (char *)&optval, sizeof( optval ) ) < 0 )
+  if( setsockopt( udpSocket, SOL_SOCKET, SO_BROADCAST, (char *)&optval, sizeof( optval )) < 0 )
   {
-    fprintf( stderr, "Cannot set socket options: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot set socket options: %s ...!\n", strerror( errno ));
     return -1;
   }
 
@@ -217,9 +217,9 @@ int sendWOL( const wol_header_t *wol_header )
     }
   }
 
-  if( sendto( udpSocket, packet, sizeof( packet ), 0, (struct sockaddr *) &addr, sizeof( addr ) ) < 0 )
+  if( sendto( udpSocket, packet, sizeof( packet ), 0, (struct sockaddr *) &addr, sizeof( addr )) < 0 )
   {
-    fprintf( stderr, "Cannot send data: %s ...!\n", strerror( errno ) );
+    fprintf( stderr, "Cannot send data: %s ...!\n", strerror( errno ));
     return -1;
   }
 
