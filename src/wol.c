@@ -75,6 +75,7 @@ int main( int argc, char **argv )
     {
       fprintf( stderr, "Error occured during sending the WOL magic packet for mac address: %s ...!\n", currentWOLHeader->mac_addr->mac_addr_str );
     }
+    free( currentWOLHeader->mac_addr );
   }
 
   close( sock );
@@ -174,6 +175,7 @@ int packMacAddr( const char *mac, mac_addr_t *packedMac )
 
   strncpy( tmpMac, mac, strlen( mac ));
   tok = strtok( tmpMac, delimiter );
+
   for( i = 0; i < MAC_ADDR_MAX; i++ )
   {
     if( tok == NULL )
@@ -181,7 +183,7 @@ int packMacAddr( const char *mac, mac_addr_t *packedMac )
       return -1;
     }
 
-    packedMac->mac_addr[i] = (unsigned char)strtol( tok, NULL, CONVERT_BASE );
+    packedMac->mac_addr[i] = (unsigned char) strtol( tok, NULL, CONVERT_BASE );
     tok = strtok( NULL, delimiter );
   }
 
