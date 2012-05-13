@@ -1,6 +1,6 @@
 # WOL - **W**ake **O**n **L**an
 > With this smart C program you can send wol magic packets in the network<br />
-> *Version 0.01.06*
+> *Version 0.01.07*
 
 ***
 

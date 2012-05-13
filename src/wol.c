@@ -3,7 +3,7 @@
 * @author     Timo Furrer
 * @co-author  Mogria
 *
-* @version    0.01.06
+* @version    0.01.07
 * @copyright  GNU General Public License
 *
 * @reopsitory https://github.com/timofurrer/WOL
@@ -23,6 +23,7 @@
 
 int main( int argc, char **argv )
 {
+  int sock;
   mac_addr_t *( *funcp )( char **args, int length ) = nextAddrFromArg;
   wol_header_t *currentWOLHeader = (wol_header_t *) malloc( sizeof( wol_header_t ));
   char **args                    = (char **) malloc( argc * ARGS_BUF_MAX * sizeof( char ));
@@ -63,20 +64,26 @@ int main( int argc, char **argv )
   args   = &argv[optind];
   length = argc - optind;
 
+  if(( sock = startupSocket( )) < 0 )
+  {
+    exit( EXIT_FAILURE ); // Log is done in startupSocket( )
+  }
+
   while(( currentWOLHeader->mac_addr = funcp( args, length )) != NULL )
   {
-    if( sendWOL( currentWOLHeader ) < 0 )
+    if( sendWOL( currentWOLHeader, sock ) < 0 )
     {
       fprintf( stderr, "Error occured during sending the WOL magic packet for mac address: %s ...!\n", currentWOLHeader->mac_addr->mac_addr_str );
     }
   }
 
+  close( sock );
   return EXIT_SUCCESS;
 }
 
 mac_addr_t *nextAddrFromArg( char **argument, int length )
 {
-  static int i = 0;
+  static int i               = 0;
   mac_addr_t *currentMacAddr = (mac_addr_t *) malloc( sizeof( mac_addr_t ));
 
   if( currentMacAddr == NULL )
@@ -182,24 +189,31 @@ int packMacAddr( const char *mac, mac_addr_t *packedMac )
   return 0;
 }
 
-int sendWOL( const wol_header_t *wol_header )
+int startupSocket( )
 {
-  int udpSocket;
-  struct sockaddr_in addr;
-  unsigned char packet[PACKET_BUF];
-  int i, j, optval = 1;
+  int sock;
+  int optval = 1;
 
-  if(( udpSocket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP )) < 0 )
+  if(( sock = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP )) < 0 )
   {
     fprintf( stderr, "Cannot open socket: %s ...!\n", strerror( errno ));
     return -1;
   }
 
-  if( setsockopt( udpSocket, SOL_SOCKET, SO_BROADCAST, (char *)&optval, sizeof( optval )) < 0 )
+  if( setsockopt( sock, SOL_SOCKET, SO_BROADCAST, (char *) &optval, sizeof( optval )) < 0 )
   {
     fprintf( stderr, "Cannot set socket options: %s ...!\n", strerror( errno ));
     return -1;
   }
+
+  return sock;
+}
+
+int sendWOL( const wol_header_t *wol_header, const int sock )
+{
+  struct sockaddr_in addr;
+  unsigned char packet[PACKET_BUF];
+  int i, j;
 
   addr.sin_family = AF_INET;
   addr.sin_port   = htons( REMOTE_PORT );
@@ -218,11 +232,11 @@ int sendWOL( const wol_header_t *wol_header )
   {
     for( j = 0; j < 6; j++ )
     {
-      packet[i*6+j] = wol_header->mac_addr->mac_addr[j];
+      packet[i * 6 + j] = wol_header->mac_addr->mac_addr[j];
     }
   }
 
-  if( sendto( udpSocket, packet, sizeof( packet ), 0, (struct sockaddr *) &addr, sizeof( addr )) < 0 )
+  if( sendto( sock, packet, sizeof( packet ), 0, (struct sockaddr *) &addr, sizeof( addr )) < 0 )
   {
     fprintf( stderr, "Cannot send data: %s ...!\n", strerror( errno ));
     return -1;

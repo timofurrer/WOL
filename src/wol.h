@@ -3,7 +3,7 @@
 * @author     Timo Furrer
 * @co-author  Mogria
 *
-* @version    0.01.06
+* @version    0.01.07
 * @copyright  GNU General Public License
 *
 * @reopsitory https://github.com/timofurrer/WOL
@@ -48,10 +48,18 @@ typedef struct
 * @brief Sends the WOL magic packet to the given mac address
 *
 * @param wol_header WOL header packet
+* @param sock       The socket to send the magic packet
 *
 * @return integer
 */
-int sendWOL( const wol_header_t *wol_header );
+int sendWOL( const wol_header_t *wol_header, const int sock );
+
+/**
+ * @brief Creates the UDP socket to send the WOL magic packet
+ *
+ * @return integer
+ */
+int startupSocket( );
 
 /**
 * @brief Gets the next mac address from the terminal arguments
