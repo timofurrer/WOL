@@ -24,6 +24,21 @@ With the option r you can specify the remote ip address. The default value is 25
     $ ./wol -r 192.168.1.36 -f macaddresses
     $ ./wol -f macaddresses macaddresses2
 
+## MAC Address file syntax
+The mac address syntax is very simple. It expects one mac address per line.
+Lines starting with `#` are comment lines and will be ignored.
+
+Valid Syntax:
+
+    # Mac address of host 192.168.1.2
+    00:0B:CD:39:2D:E9
+
+    # Brothers mac address
+    00:05:FE:AB:3D:99
+
+    # Servers mac address
+    00:32:D5:35:EF:63
+
 ## How to compile
 To compile the wol source you just need the `gcc`.
 Compile it with the following command:

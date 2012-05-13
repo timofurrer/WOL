@@ -24,8 +24,8 @@
 int main( int argc, char **argv )
 {
   mac_addr_t *( *funcp )( char **args, int length ) = nextAddrFromArg;
-  wol_header_t *currentWOLHeader = (wol_header_t *)malloc( sizeof( wol_header_t ));
-  char **args                    = (char **)malloc( argc * ARGS_BUF_MAX * sizeof( char ));
+  wol_header_t *currentWOLHeader = (wol_header_t *) malloc( sizeof( wol_header_t ));
+  char **args                    = (char **) malloc( argc * ARGS_BUF_MAX * sizeof( char ));
   int length                     = argc;
   char argument;
 
@@ -77,7 +77,7 @@ int main( int argc, char **argv )
 mac_addr_t *nextAddrFromArg( char **argument, int length )
 {
   static int i = 0;
-  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ));
+  mac_addr_t *currentMacAddr = (mac_addr_t *) malloc( sizeof( mac_addr_t ));
 
   if( currentMacAddr == NULL )
   {
@@ -104,8 +104,8 @@ mac_addr_t *nextAddrFromFile( char **filenames, int length )
 {
   static FILE *fp            = NULL;
   static int fileNr          = 0;
-  mac_addr_t *currentMacAddr = (mac_addr_t *)malloc( sizeof( mac_addr_t ));
-  char *currentInputMacAddr  = (char *)malloc( MAC_ADDR_STR_MAX * sizeof( char ));
+  mac_addr_t *currentMacAddr = (mac_addr_t *) malloc( sizeof( mac_addr_t ));
+  char *currentInputMacAddr  = (char *) malloc( MAC_ADDR_STR_MAX * sizeof( char ));
 
   if( currentMacAddr == NULL || currentInputMacAddr == NULL )
   {
@@ -127,6 +127,11 @@ mac_addr_t *nextAddrFromFile( char **filenames, int length )
 
     if( fgets( currentInputMacAddr, MAC_ADDR_STR_MAX, fp ) != NULL )
     {
+      if( currentInputMacAddr[0] == '#' )
+      {
+        continue;
+      }
+
       currentInputMacAddr[strlen( currentInputMacAddr ) - 1] = '\0';
       if( packMacAddr( currentInputMacAddr, currentMacAddr ) < 0 )
       {
@@ -149,7 +154,7 @@ mac_addr_t *nextAddrFromFile( char **filenames, int length )
 
 int packMacAddr( const char *mac, mac_addr_t *packedMac )
 {
-  char *tmpMac    = (char *)malloc( strlen( mac ) * sizeof( char ));
+  char *tmpMac    = (char *) malloc( strlen( mac ) * sizeof( char ));
   char *delimiter = ":";
   char *tok;
   int i;
