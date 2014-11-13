@@ -163,7 +163,7 @@ mac_addr_t *nextAddrFromFile( char **filenames, int length )
 int packMacAddr( const char *mac, mac_addr_t *packedMac )
 {
   char *tmpMac    = (char *) malloc( strlen( mac ) * sizeof( char ));
-  char *delimiter = ":";
+  char *delimiter = (char *) ":";
   char *tok;
   int i;
 
