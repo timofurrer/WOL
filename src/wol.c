@@ -28,7 +28,7 @@ int main( int argc, char **argv )
   wol_header_t *currentWOLHeader = (wol_header_t *) malloc( sizeof( wol_header_t ));
   char **args                    = (char **) malloc( argc * ARGS_BUF_MAX * sizeof( char ));
   int length                     = argc;
-  char argument;
+  int argument;
 
   strncpy( currentWOLHeader->remote_addr, REMOTE_ADDR, ADDR_LEN );
 
