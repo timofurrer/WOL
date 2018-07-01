@@ -52,6 +52,7 @@ int main( int argc, char **argv )
     else
     {
       fprintf( stderr, USAGE, *argv );
+      exit(EXIT_SUCCESS);
     }
   }
 
